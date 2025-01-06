@@ -1,7 +1,28 @@
 import * as React from "react";
 import * as yup from "yup";
-import { Button, createStyles, makeStyles, TextField, Theme, Typography } from "@material-ui/core";
-import { Cached as CachedIcon, Send as SendIcon } from "@material-ui/icons";
+import {
+  Button,
+  createStyles,
+  makeStyles,
+  TextField,
+  Theme,
+  Typography,
+  Link,
+  Tooltip,
+  Divider,
+  SvgIcon,
+} from "@material-ui/core";
+import {
+  Cached as CachedIcon,
+  Send as SendIcon,
+  GitHub as GitHubIcon,
+  Twitter as TwitterIcon,
+  Facebook as FacebookIcon,
+} from "@material-ui/icons";
+
+import { ReactComponent as GoogleTinyIcon } from "super-tiny-icons/images/svg/google.svg";
+import { ReactComponent as MSTinyIcon } from "super-tiny-icons/images/svg/microsoft.svg";
+
 import { useHistory, useLocation } from "react-router-dom";
 import { useFormik } from "formik";
 import { useSnackbar } from "notistack";
@@ -103,6 +124,14 @@ export function LoginPage() {
     setCaptchaID(randomString());
   };
 
+  const setLogin = React.useCallback(
+    (username: string, group: any) => {
+      dispatch(setUsername({ username, group }));
+      localStorage.setItem("username", username);
+    },
+    [dispatch]
+  );
+
   const formik = useFormik({
     initialValues: {
       username: "",
@@ -121,9 +150,7 @@ export function LoginPage() {
           }, 1000);
           gtag("event", "login", { method: "password" });
           postMetrics("user").catch(noop);
-
-          dispatch(setUsername({ username: res.data.username, group: res.data.group }));
-          localStorage.setItem("username", values.username);
+          setLogin(res.data.username, res.data.group);
           enqueueSnackbar("登录成功", { variant: "success" });
         })
         .catch((error) => {
@@ -149,6 +176,24 @@ export function LoginPage() {
       });
   }, [captchaID, enqueueSnackbar]);
 
+  React.useEffect(() => {
+    const url = new URL(window.location.href);
+    const status = url.searchParams.get("status");
+    const message = url.searchParams.get("message");
+    const username = url.searchParams.get("username") || "";
+
+    if (status === "success") {
+      enqueueSnackbar(message, { variant: "success" });
+      setLogin(username, ["user"]);
+      // 2秒钟之后跳转到首页
+      setTimeout(() => {
+        history.push("/");
+      }, 2000);
+    } else if (status === "fail") {
+      enqueueSnackbar(message, { variant: "error" });
+    }
+  }, [enqueueSnackbar, history, setLogin]);
+
   return (
     <div className={classes.root}>
       <div className={classes.left}>
@@ -160,9 +205,8 @@ export function LoginPage() {
             <Typography gutterBottom variant="h4">
               登录
             </Typography>
-            <Typography>未注册用户将会自动注册</Typography>
+            <Typography>未注册用户将会自动注册，需要验证邮箱才可以发表评论。</Typography>
           </div>
-
           <form onSubmit={formik.handleSubmit}>
             <TextField
               fullWidth
@@ -214,6 +258,41 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
+          <Divider />
+          <Typography>使用第三方登录，无需验证邮箱</Typography>
+          <Tooltip title="使用GitHub登录，你的GitHub用户名会是你的登录名">
+            <Link href="/auth/github">
+              <GitHubIcon />
+            </Link>
+          </Tooltip>
+          &nbsp;
+          <Tooltip title="使用Google登录，你的Gmail会是你的登录名">
+            <Link href="/auth/google">
+              <SvgIcon>
+                <GoogleTinyIcon />
+              </SvgIcon>
+            </Link>
+          </Tooltip>
+          &nbsp;
+          <Tooltip title="使用Twitter登录，你的Twitter用户名会是你的登录名">
+            <Link href="/auth/twitter">
+              <TwitterIcon />
+            </Link>
+          </Tooltip>{" "}
+          &nbsp;
+          <Tooltip title="使用Microsoft登录，你的邮箱会是你的登录名">
+            <Link href="/auth/microsoft">
+              <SvgIcon>
+                <MSTinyIcon />
+              </SvgIcon>
+            </Link>
+          </Tooltip>
+          &nbsp;
+          <Tooltip title="使用Facebook登录，你的姓名和数字ID会是你的登录名">
+            <Link href="/auth/facebook">
+              <FacebookIcon />
+            </Link>
+          </Tooltip>
         </div>
       </div>
     </div>

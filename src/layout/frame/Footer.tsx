@@ -43,7 +43,7 @@ const useStyles = makeStyles((theme: Theme) =>
         color: theme.palette.text.secondary,
       },
     },
-  })
+  }),
 );
 
 export function Footer() {
@@ -70,13 +70,13 @@ export function Footer() {
               </Typography>
               <ul>
                 <li>
-                  <Link href="https://t.me/BennyThink" color="inherit" variant="body1">
-                    Benny 小可爱
+                  <Link href="https://dmesg.app/" color="inherit" variant="body1">
+                    Benny
                   </Link>
                 </li>
                 <li>
-                  <Link href="https://dmesg.app/" color="inherit" variant="body1">
-                    Blog
+                  <Link href="https://blog.zuiyu1818.cn/" color="inherit" variant="body1">
+                    Zuiyu
                   </Link>
                 </li>
               </ul>
@@ -97,11 +97,6 @@ export function Footer() {
                     Telegram Channel
                   </Link>
                 </li>
-                <li>
-                  <Link color="inherit" variant="body1" component={RouterLink} to="/database">
-                    数据库下载
-                  </Link>
-                </li>
               </ul>
             </Grid>
 
@@ -116,8 +111,8 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="https://yysubs.com" color="inherit" variant="body1">
-                    加入字幕组
+                  <Link href="https://github.com/tgbot-collection/YYeTsBot" color="inherit" variant="body1">
+                    开源地址
                   </Link>
                 </li>
               </ul>

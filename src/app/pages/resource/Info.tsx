@@ -153,6 +153,10 @@ export function Info(props: InfoPropTypes) {
   };
 
   const classes = useStyles();
+  const getDoubanPoster = () => {
+    const webpcloud = "https://3297e64.webp.ee";
+    return `${webpcloud}/api/douban?resource_id=${id}&type=image`;
+  };
 
   return (
     <div>
@@ -200,7 +204,9 @@ export function Info(props: InfoPropTypes) {
           {/* 海报 */}
           <Link href={doubanInfo.doubanLink} target="_blank">
             <div
-              style={{ backgroundImage: `url(/api/douban?resource_id=${id}&type=image)` }}
+              style={{
+                backgroundImage: `url(${getDoubanPoster()})`,
+              }}
               className={classes.post}
             />
           </Link>
@@ -291,7 +297,7 @@ export function Info(props: InfoPropTypes) {
               </Button>
 
               <CopyToClipboard
-                text={url}
+                text={`我发现了一个好资源「${resourceInfo.cnname}」${url} 快来看看吧`}
                 onCopy={() => {
                   enqueueSnackbar("页面地址复制成功，快去分享给小伙伴吧", { variant: "success" });
                   gtag("event", "share", { resource_id: id, form: "resource" });

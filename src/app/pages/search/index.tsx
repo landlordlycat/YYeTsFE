@@ -1,15 +1,27 @@
 import * as React from "react";
 import * as yup from "yup";
-import { Button, Container, createStyles, makeStyles, TextField, Theme } from "@material-ui/core";
+import {
+  Button,
+  Container,
+  createStyles,
+  Divider,
+  Select,
+  makeStyles,
+  MenuItem,
+  TextField,
+  Theme,
+  InputAdornment,
+  Typography,
+} from "@material-ui/core";
 import { useSnackbar } from "notistack";
 import { useFormik } from "formik";
 import { useHistory, useLocation } from "react-router-dom";
 import queryString from "query-string";
-
+import { Adsense } from "@ctrl/react-adsense";
 import {
   cancelGetTop,
   CommentResult,
-  ExtraResult,
+  SubtitleResult,
   getSearchKw,
   getTop,
   GetTopRes,
@@ -30,6 +42,12 @@ const useStyles = makeStyles((theme: Theme) =>
     container: {
       paddingTop: theme.spacing(4),
     },
+    hr: {
+      margin: theme.spacing(4, 0),
+      [theme.breakpoints.up("sm")]: {
+        margin: theme.spacing(6, 0),
+      },
+    },
     searchBar: {
       display: "flex",
       alignItems: "center",
@@ -45,7 +63,7 @@ const useStyles = makeStyles((theme: Theme) =>
         marginLeft: theme.spacing(4),
       },
     },
-  })
+  }),
 );
 
 export function SearchPage() {
@@ -53,7 +71,6 @@ export function SearchPage() {
   const history = useHistory();
 
   const parsedQuery = queryString.parse(useLocation().search);
-
   /* 显示模式，热门还是搜索列表 */
   const [mode, setMode] = React.useState<"top" | "list">("top");
   const ref = React.useRef<HTMLInputElement>(null!);
@@ -62,20 +79,21 @@ export function SearchPage() {
   const [top, setTop] = React.useState<GetTopRes>({} as GetTopRes);
 
   const [listLoading, setListLoading] = React.useState<boolean>(true);
-  const [list, setList] = React.useState<Array<ResourceInfo>>([]);
-  const [extraList, setExtraList] = React.useState<Array<ExtraResult>>([]);
+  const [resourceList, setResourceList] = React.useState<Array<ResourceInfo>>([]);
+  const [subtitleList, setSubtitleList] = React.useState<Array<SubtitleResult>>([]);
   const [commentList, setCommentList] = React.useState<Array<CommentResult>>([]);
+  const [select, setSelect] = React.useState<string>("default");
 
-  const searchByKw = (search: string) => {
+  const searchByKw = (search: string, type: string = "default") => {
     setTitle(`${search} - 搜索结果`);
-    getSearchKw(search)
+    getSearchKw(search, type)
       .then((res) => {
         setListLoading(false);
 
         if (res.data) {
-          const { data, extra, comment } = res.data;
-          setList(data);
-          setExtraList(extra);
+          const { resource, subtitle, comment } = res.data;
+          setResourceList(resource);
+          setSubtitleList(subtitle);
           setCommentList(comment);
         }
       })
@@ -94,23 +112,20 @@ export function SearchPage() {
     onSubmit: (values) => {
       ref.current.blur();
 
-      history.replace({ pathname: "/search", search: `?keyword=${values.search}` });
+      history.replace({ pathname: "/search", search: `?keyword=${values.search}&type=${select}` });
       gtag("event", "search", { search_term: values.search });
+      setMode("list");
+      setListLoading(true);
 
-      setTimeout(() => {
-        setMode("list");
-        setListLoading(true);
-      }, 100);
-
-      searchByKw(values.search);
+      searchByKw(values.search, select);
     },
   });
 
   React.useEffect(() => {
+    setSelect((parsedQuery.type as string) || "default");
     if (parsedQuery.keyword) {
       setMode("list");
-
-      searchByKw(parsedQuery.keyword as string);
+      searchByKw(parsedQuery.keyword as string, parsedQuery.type as string);
     } else {
       setTitle("搜索资源");
       getTop()
@@ -132,13 +147,12 @@ export function SearchPage() {
   }, [enqueueSnackbar]);
 
   const classes = useStyles();
-
   return (
     <Container className={classes.container} maxWidth="lg">
       <form className={classes.searchBar} onSubmit={formik.handleSubmit}>
         <TextField
           name="search"
-          placeholder="搜索片名"
+          placeholder="搜索关键字"
           className={classes.searchInput}
           autoFocus={!parsedQuery.keyword}
           value={formik.values.search}
@@ -146,7 +160,26 @@ export function SearchPage() {
           error={formik.touched.search && Boolean(formik.errors.search)}
           helperText={formik.touched.search && formik.errors.search}
           autoComplete="off"
-          inputProps={{ ref }}
+          InputProps={{
+            ref,
+            startAdornment: (
+              <InputAdornment position="start">
+                <Select
+                  labelId="demo-simple-select-label"
+                  id="demo-simple-select"
+                  value={select}
+                  onChange={(e: React.ChangeEvent<{ value: unknown }>) => {
+                    setSelect(e.target.value as string);
+                  }}
+                >
+                  <MenuItem value="default">默认</MenuItem>
+                  <MenuItem value="resource">资源</MenuItem>
+                  <MenuItem value="comment">评论</MenuItem>
+                  <MenuItem value="subtitle">字幕</MenuItem>
+                </Select>
+              </InputAdornment>
+            ),
+          }}
         />
         <Button variant="contained" color="primary" size="small" className={classes.searchButton} type="submit">
           搜索
@@ -156,10 +189,27 @@ export function SearchPage() {
       {mode === "top" ? (
         <>
           <RankComponent data={top.ALL} loading={rankLoading} />
+
+          {process.env.REACT_APP_ADSENSE && (
+            <Adsense
+              className="adsbygoogle"
+              client={`ca-pub-${process.env.REACT_APP_ADSENSE}`}
+              slot="2041326824"
+              style={{ display: "block" }}
+              format="auto"
+              responsive="true"
+            />
+          )}
+
           {!!Object.keys(top).length && <SectionComponent data={top} />}
         </>
       ) : (
-        <SearchListComponent list={list} extraList={extraList} commentList={commentList} loading={listLoading} />
+        <SearchListComponent
+          resourceList={resourceList}
+          commentList={commentList}
+          subtitleList={subtitleList}
+          loading={listLoading}
+        />
       )}
     </Container>
   );

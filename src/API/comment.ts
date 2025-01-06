@@ -45,9 +45,13 @@ interface GetCommentParams {
   resource_id: number;
   size: number;
   page: number;
+  comment_id?: string;
+  sort?: string;
 }
 
 export interface Comment {
+  hasAvatar: boolean;
+  hash: string;
   id: string;
   resource_id: number;
   date: string;
@@ -82,6 +86,8 @@ export interface LastComment {
   id: string;
   group: Array<UserGroup>;
   cnname: string;
+  hasAvatar: boolean;
+  hash: string;
 }
 
 interface LastCommentRes {
@@ -91,4 +97,14 @@ interface LastCommentRes {
 /* 获取最新评论 */
 export function getLastComment(params: LastCommentParams) {
   return axios.get<LastCommentRes>("/api/comment/newest", { params });
+}
+
+interface GetChildCommentParams {
+  parent_id: string | undefined;
+  size: number;
+  page: number;
+}
+
+export function getChildComment(params: GetChildCommentParams) {
+  return axios.get("/api/comment/child", { params });
 }

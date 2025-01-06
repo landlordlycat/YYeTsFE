@@ -67,11 +67,11 @@ export function LastComment() {
             <ListItem
               alignItems="flex-start"
               key={item.id}
-              onClick={() => handleClick(item.resource_id, item.cnname)}
+              onClick={() => handleClick(item.resource_id, item.id, item.cnname)}
               button
             >
               <ListItemAvatar>
-                <Avatar admin={item.group.includes("admin")} username={item.username} />
+                <Avatar group={item.group} username={item.username} hasAvatar={item.hasAvatar} hash={item.hash} />
               </ListItemAvatar>
               <ListItemText
                 primary={

@@ -7,22 +7,36 @@ import {
   CardActions,
   CardContent,
   Container,
+  Avatar,
   createStyles,
+  Divider,
+  TextField,
   Grid,
   makeStyles,
+  Modal,
   Theme,
   Typography,
   useMediaQuery,
 } from "@material-ui/core";
 import { Link } from "react-router-dom";
-
-import { getLike, patchLike, postMetrics, ResourceInfo } from "API";
+import * as yup from "yup";
+import { getLike, patchLike, postMetrics, ResourceInfo, patchUser, verifyEmail, uploadAvatar } from "API";
 import { useSnackbar } from "notistack";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { Skeleton } from "@material-ui/lab";
+import { AvatarUploader } from "./avatarUploader";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
+    emailWidth: {
+      width: 350,
+    },
+    hr: {
+      margin: theme.spacing(4, 0),
+      [theme.breakpoints.up("sm")]: {
+        margin: theme.spacing(6, 0),
+      },
+    },
     container: {
       paddingTop: theme.spacing(4),
     },
@@ -60,18 +74,85 @@ const useStyles = makeStyles((theme: Theme) =>
   })
 );
 
-export function MePage() {
+const emailRegex = /@gmail\.com|@outlook\.com|@qq\.com|@163\.com/gi;
+
+let validationSchema = yup.object({
+  input: yup.string().email().matches(emailRegex, "不支持的邮箱").required("请输入邮箱"),
+});
+
+export function MePage(props: any) {
+  const { verified, address, hasAvatar, username } = props;
   setTitle("个人中心");
-
   const { enqueueSnackbar } = useSnackbar();
-
+  const [display, setDisplay] = React.useState<boolean>(false);
   const [likeList, setLikeList] = React.useState<{ [key: string]: Array<ResourceInfo> }>({});
   const [likeLength, setLikeLength] = React.useState<number>(0);
 
   const [loading, setLoading] = React.useState<boolean>(true);
-
+  const [input, setInput] = React.useState<string>("");
+  const [inputError, setInputError] = React.useState<boolean>(false);
+  const initialState = {
+    type: "邮箱",
+    help: "仅支持Gmail, QQ, 163和outlook",
+    typography: "您还未添加邮箱，请验证邮箱以获得更好的体验。",
+  };
+  const [helperText, setHelperText] = React.useState(initialState);
   const mobile = useMediaQuery("(max-width: 600px)");
   const classes = useStyles();
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(event.target.value);
+    if (helperText.type === "邮箱") {
+      validationSchema
+        .validate({ input: event.target.value })
+        .then(() => {
+          setInputError(false);
+        })
+        .catch((err) => {
+          setInputError(true);
+        });
+    } else {
+      validationSchema = yup.object({
+        input: yup.string().required("请输入验证吗"),
+      });
+    }
+  };
+
+  const handleVerifyButton = () => {
+    if (helperText.type === "邮箱") {
+      patchUser({ email: input })
+        .then((r) => {
+          enqueueSnackbar(r.data.message, { variant: "success" });
+          setHelperText({ typography: helperText.typography, type: "验证", help: "请打开你的邮箱查看验证码" });
+        })
+        .catch((e) => {
+          enqueueSnackbar(e.response.data.message, { variant: "error" });
+        });
+      setInput("");
+    } else {
+      verifyEmail({ code: input })
+        .then((r) => {
+          enqueueSnackbar(r.data.message, { variant: "success" });
+          setHelperText({ typography: `你的邮箱已验证成功。`, type: "", help: "" });
+          setDisplay(false);
+        })
+        .catch((e) => {
+          enqueueSnackbar(e.response.data.message, { variant: "error" });
+        });
+    }
+  };
+
+  React.useEffect(() => {
+    if (verified) {
+      setDisplay(false);
+      setHelperText({
+        type: "",
+        help: "",
+        typography: `你的邮箱${address}已验证成功。 `,
+      });
+    } else {
+      setDisplay(true);
+    }
+  }, [verified, address]);
 
   React.useEffect(() => {
     setLoading(true);
@@ -167,6 +248,35 @@ export function MePage() {
           <img src={toAbsoluteUrl("/svg/emptyAddress.svg")} alt="empty" />
           <Typography>暂无结果</Typography>
         </div>
+
+        <Divider className={classes.hr} />
+        <div className={classes.emailWidth}>
+          <Typography>{helperText.typography}</Typography>
+
+          {display && (
+            <>
+              <TextField
+                id="email"
+                error={inputError}
+                label={helperText.type}
+                helperText={helperText.help}
+                fullWidth
+                value={input}
+                onChange={handleInputChange}
+              />
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleVerifyButton}
+                disabled={inputError || input.length === 0}
+              >
+                验证
+              </Button>
+            </>
+          )}
+        </div>
+        <Divider className={classes.hr} />
+        <AvatarUploader hasAvatar={hasAvatar} username={username} />
       </Container>
     );
 
@@ -189,7 +299,6 @@ export function MePage() {
                 {likeList[key].length > 99 ? "99+" : likeList[key].length}
               </Typography>
             </Typography>
-
             <Grid container spacing={mobile ? 1 : 2}>
               {likeList[key].map((item) => (
                 <Grid item xs={6} sm={4} md={3} key={item.id}>
@@ -233,6 +342,35 @@ export function MePage() {
           </section>
         );
       })}
+
+      <Divider className={classes.hr} />
+      <div className={classes.emailWidth}>
+        <Typography>{helperText.typography}</Typography>
+
+        {display && (
+          <>
+            <TextField
+              id="email"
+              error={inputError}
+              label={helperText.type}
+              helperText={helperText.help}
+              fullWidth
+              value={input}
+              onChange={handleInputChange}
+            />
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleVerifyButton}
+              disabled={inputError || input.length === 0}
+            >
+              验证
+            </Button>
+          </>
+        )}
+      </div>
+      <Divider className={classes.hr} />
+      <AvatarUploader hasAvatar={hasAvatar} username={username} />
     </Container>
   );
 }

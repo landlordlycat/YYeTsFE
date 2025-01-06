@@ -1,0 +1,48 @@
+name: build frontend
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - 'master'
+
+jobs:
+  builder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: install nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: build FE
+        run: |
+          export NODE_OPTIONS=--openssl-legacy-provider
+          npm install -g yarn
+          yarn
+          mv .env.example .env
+          yarn build
+          zip -r build.zip build/
+
+      - name: Release frontend resources
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "build.zip"

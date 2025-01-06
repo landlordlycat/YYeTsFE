@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useLocation, useHistory, Link as RouterLinker } from "react-router-dom";
+import { useHistory, useLocation } from "react-router-dom";
+
 import {
   Backdrop,
   Button,
@@ -14,22 +15,23 @@ import {
   Theme,
   Tooltip,
   Typography,
+  Link,
 } from "@material-ui/core";
 import queryString from "query-string";
 import { useSnackbar } from "notistack";
 
 import {
-  getResourceByID,
-  ResourceInfo,
   AddressInfo,
+  cancelGetDoubanByID,
   cancelGetResourceByID,
-  postMetrics,
   DoubanInfo,
   getDoubanByID,
-  cancelGetDoubanByID,
+  getResourceByID,
+  postMetrics,
+  ResourceInfo,
 } from "API";
 import { BackOldIcon } from "Icon";
-import { noop, setTitle } from "utils";
+import { noop, setTitle, ShowAdsense } from "utils";
 import { CommentComponent } from "features";
 import { Info } from "./Info";
 import { Address } from "./Address";
@@ -63,6 +65,19 @@ const useStyles = makeStyles((theme: Theme) =>
         backgroundColor: theme.palette.background.paper,
       },
     },
+    origin: {
+      position: "absolute",
+      top: 0,
+      right: 64,
+
+      "&::before": {
+        position: "absolute",
+        content: " ",
+        width: 100,
+        height: 100,
+        backgroundColor: theme.palette.background.paper,
+      },
+    },
     modal: {
       display: "flex",
       alignItems: "center",
@@ -79,6 +94,7 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 export function ResourcePage() {
+  const showAdsense = ShowAdsense();
   const location = useLocation<{ title: string }>();
   const { id } = queryString.parse(location.search);
 
@@ -157,7 +173,18 @@ export function ResourcePage() {
             <BackOldIcon className="icon" />
           </IconButton>
         </Tooltip>
-
+        {resourceInfo.source && (
+          <Tooltip title="查看原站">
+            <IconButton
+              className={classes.origin}
+              onClick={() => {
+                window.location.href = resourceInfo.source || "";
+              }}
+            >
+              <Link />
+            </IconButton>
+          </Tooltip>
+        )}
         <Modal
           className={classes.modal}
           open={open}
@@ -178,17 +205,11 @@ export function ResourcePage() {
                 </Typography>
                 啦
               </Typography>
-              <Typography gutterBottom>
-                若您对新版还有什么不满意欢迎到
-                <Typography component={RouterLinker} to="/discuss" color="inherit">
-                  留言板
-                </Typography>
-                反馈哦
-              </Typography>
+              <Typography gutterBottom>若您对新版还有什么不满意欢迎到GitHub反馈哦</Typography>
               <br />
               <div className={classes.modal}>
                 <ButtonGroup variant="contained" disableElevation>
-                  <Button color="secondary" component={RouterLinker} to="/discuss">
+                  <Button color="secondary" href="https://github.com/tgbot-collection/YYeTsFE/issues">
                     反馈意见
                   </Button>
                   <Button color="primary" href={`/resource.html${location.search}`} onClick={handleBack}>
@@ -199,7 +220,6 @@ export function ResourcePage() {
             </div>
           </Fade>
         </Modal>
-
         <Info
           loading={loading}
           resourceInfo={resourceInfo}
@@ -209,13 +229,10 @@ export function ResourcePage() {
           id={id as string}
           doubanInfo={doubanInfo}
         />
-
         <Divider className={classes.hr} />
 
         <Address loading={loading} resourceAddress={resourceAddress} resourceId={id as string} />
-
         <Divider className={classes.hr} />
-
         <CommentComponent loading={loading} id={Number(id)} title="评论" />
       </Container>
     </>

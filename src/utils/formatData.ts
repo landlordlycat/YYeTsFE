@@ -2,10 +2,15 @@ import * as Bowser from "bowser";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
-const md5 = require('md5');
+const md5 = require("md5");
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.extend(relativeTime);
+dayjs.tz.setDefault("Asia/Shanghai");
 
 export const formatBrowser = (browser: string) => {
   const result = Bowser.parse(browser);
@@ -22,10 +27,17 @@ export const formatAvatar = (name: string) => {
   return name.substr(0, 3);
 };
 
-export const getGravatar = (name: string) => {
-  if (name.indexOf("@") !== -1) {
-    const hash = md5(name);
-    return `https://gravatar.webp.se/avatar/${hash}`;
+export const getGravatar = (name: string, hasAvatar: boolean, hash: string) => {
+  const hashQuery = hash ? `?hash=${hash}` : "";
+  const gravatarPrefix = process.env.NODE_ENV !== "development" ? "https://gravatar.webp.se" : "";
+  const webpPrefix = process.env.NODE_ENV !== "development" ? "https://3297e64.webp.ee" : "";
+
+  if (hasAvatar) {
+    return `${webpPrefix}/api/user/avatar/${name}${hashQuery}`;
+  }
+
+  if (name && name.includes("@")) {
+    return `${gravatarPrefix}/avatar/${md5(name)}`;
   }
   return "";
 };
@@ -40,14 +52,15 @@ export const formatComment = (comment: string) => {
 };
 
 export const formatDate = (rowDate: string) => {
-  const date = dayjs(rowDate).locale("zh-cn");
+  // time date in db is always CST, so we need to read it by default timezone using dayjs.tz
+  const date = dayjs.tz(rowDate).locale("zh-cn");
   const now = dayjs();
 
   if (!date.isValid()) return "时间格式错误";
 
   if (date.isAfter(now.startOf("day"))) return date.fromNow();
 
-  if (date.isAfter(now.startOf("year"))) return date.format("M-D HH:mm");
+  if (date.isAfter(now.startOf("year"))) return date.format("YYYY-MM-DD HH:mm");
 
   return date.format("YYYY-MM-DD HH:mm");
 };
